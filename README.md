@@ -1,73 +1,103 @@
-# Welcome to your Lovable project
+# Genesis Certify
 
-## Project info
+A modern certificate management system built with React and Vite. This application allows students to request certificates and administrators to manage certificate requests efficiently.
 
-**URL**: https://lovable.dev/projects/301801d7-e48e-456f-a314-c41816285ab0
+## Features
 
-## How can I edit this code?
+- **Student Portal**: Request certificates with a user-friendly form
+- **Status Tracking**: Real-time tracking of certificate request status
+- **Admin Dashboard**: Comprehensive management interface for administrators
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Modern UI**: Built with shadcn/ui components and Tailwind CSS
 
-There are several ways of editing your application.
+## Technologies Used
 
-**Use Lovable**
+- **Frontend**: React 18 with JSX
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **Icons**: Lucide React
+- **State Management**: React Hooks
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/301801d7-e48e-456f-a314-c41816285ab0) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (version 16 or higher)
+- npm or yarn
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+1. Clone the repository:
+```bash
 git clone <YOUR_GIT_URL>
+cd genesis-certify
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
+```bash
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Open your browser and navigate to `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Available Scripts
 
-**Use GitHub Codespaces**
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run build:dev` - Build for development
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   └── StudentForm.jsx # Certificate request form
+├── pages/              # Application pages
+│   ├── Home.jsx
+│   ├── RequestCertificate.jsx
+│   ├── StatusTracker.jsx
+│   ├── AdminDashboard.jsx
+│   └── NotFound.jsx
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+├── data/               # Mock data and constants
+└── main.jsx           # Application entry point
+```
 
-This project is built with:
+## Features Overview
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Student Features
+- Request certificates through an intuitive form
+- Track request status in real-time
+- View request history
 
-## How can I deploy this project?
+### Admin Features
+- Comprehensive dashboard with request overview
+- Approve/reject certificate requests
+- Filter and search functionality
+- Export capabilities
 
-Simply open [Lovable](https://lovable.dev/projects/301801d7-e48e-456f-a314-c41816285ab0) and click on Share -> Publish.
+## Contributing
 
-## Can I connect a custom domain to my Lovable project?
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Yes, you can!
+## License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+This project is licensed under the MIT License.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Support
+
+For support and questions, please open an issue in the GitHub repository.
