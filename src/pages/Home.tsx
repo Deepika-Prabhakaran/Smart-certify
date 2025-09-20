@@ -21,9 +21,12 @@ const Home = () => {
               <Link to="/request-certificate" className="text-muted-foreground hover:text-foreground font-medium">
                 Request Certificate
               </Link>
-              <span className="text-muted-foreground font-medium cursor-not-allowed opacity-50">
+              <Link to="/status-tracker" className="text-muted-foreground hover:text-foreground font-medium">
+                Track Status
+              </Link>
+              <Link to="/admin-dashboard" className="text-muted-foreground hover:text-foreground font-medium">
                 Admin Dashboard
-              </span>
+              </Link>
             </nav>
           </div>
         </div>
@@ -82,9 +85,11 @@ const Home = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button variant="outline" size="lg" className="w-full" disabled>
-                Admin Dashboard
-              </Button>
+              <Link to="/admin-dashboard">
+                <Button variant="outline" size="lg" className="w-full">
+                  Admin Dashboard
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
