@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Loader2, FileText, CheckCircle } from "lucide-react";
 
-const StudentForm = () => {
+const StudentForm = ({ onDataChange, formData: parentFormData }) => {
   const [formData, setFormData] = useState({
     name: "",
     college: "",
@@ -26,6 +26,18 @@ const StudentForm = () => {
     "Course Completion Certificate",
     "Academic Transcript",
   ];
+
+  // Update parent component whenever form data or generated letter changes
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange({
+        studentName: formData.name,
+        college: formData.college,
+        certificateType: formData.certificateType,
+        generatedLetter: generatedLetter
+      });
+    }
+  }, [formData, generatedLetter, onDataChange]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -146,6 +158,7 @@ Make it look like an official academic document.`
               <Label htmlFor="name">Student Name *</Label>
               <Input
                 id="name"
+                name="studentName"
                 placeholder="Enter full name"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
@@ -157,6 +170,7 @@ Make it look like an official academic document.`
               <Label htmlFor="college">College/Institution *</Label>
               <Input
                 id="college"
+                name="college"
                 placeholder="Enter college name"
                 value={formData.college}
                 onChange={(e) => handleInputChange("college", e.target.value)}
@@ -167,7 +181,11 @@ Make it look like an official academic document.`
 
           <div className="space-y-2">
             <Label htmlFor="certificateType">Certificate Type *</Label>
-            <Select value={formData.certificateType} onValueChange={(value) => handleInputChange("certificateType", value)}>
+            <Select 
+              name="certificateType"
+              value={formData.certificateType} 
+              onValueChange={(value) => handleInputChange("certificateType", value)}
+            >
               <SelectTrigger className="shadow-sm">
                 <SelectValue placeholder="Select certificate type" />
               </SelectTrigger>
@@ -225,6 +243,7 @@ Make it look like an official academic document.`
           <CardContent>
             <div className="bg-document border border-document-border rounded-lg p-6 shadow-document">
               <Textarea
+                name="generatedLetter"
                 value={generatedLetter}
                 readOnly
                 className="min-h-[400px] bg-transparent border-none resize-none font-mono text-sm leading-relaxed"

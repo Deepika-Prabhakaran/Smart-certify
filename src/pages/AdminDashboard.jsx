@@ -5,54 +5,120 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GraduationCap, Check, X, FileText, Users, Clock, CheckCircle } from "lucide-react";
-import { getAllRequests } from "@/data/mockData";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { GraduationCap, Check, X, FileText, Users, Clock, CheckCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedLetter, setSelectedLetter] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load mock data
-    setRequests(getAllRequests());
+    fetchRequests();
   }, []);
 
-  const handleApprove = (requestId) => {
-    setRequests(prev => prev.map(req => 
-      req.id === requestId 
-        ? { 
-            ...req, 
-            status: 'approved',
-            approvedBy: 'Admin',
-            approvedDate: new Date().toISOString().split('T')[0],
-            generatedLetter: `${req.generatedLetter}\n\n[E-SIGNATURE: Digital Seal Applied]\n[APPROVED BY: Admin]\n[DATE: ${new Date().toLocaleDateString()}]`
-          }
-        : req
-    ));
-    
-    toast({
-      title: "Certificate Approved",
-      description: "Certificate has been approved and e-signature applied",
-    });
+  const fetchRequests = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/requests');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      setRequests(data.requests || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch requests. Please check if the server is running.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleReject = (requestId) => {
-    setRequests(prev => prev.map(req => 
-      req.id === requestId 
-        ? { ...req, status: 'rejected' }
-        : req
-    ));
-    
-    toast({
-      title: "Certificate Rejected",
-      description: "Certificate request has been rejected",
-      variant: "destructive"
-    });
+  const handleApprove = async (requestId) => {
+    try {
+      const request = requests.find(req => req.id === requestId);
+      
+      // Show detailed loading toast
+      toast({
+        title: "🔒 Applying Official Seal",
+        description: `Generating sealed PDF for ${request?.studentName || 'student'} with official signature and institutional seal...`,
+      });
+
+      const response = await fetch(`http://localhost:5000/api/admin/approve/${requestId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approvedBy: 'Admin'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Refresh the requests list
+      await fetchRequests();
+      
+      // Show success with details about the generated file
+      toast({
+        title: "✅ Certificate Officially Sealed!",
+        description: `PDF generated as "${result.pdfFileName}" with digital signature and official institutional seal. Ready for download.`,
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Seal Application Failed",
+        description: `Failed to apply official seal: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleReject = async (requestId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/admin/reject/${requestId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approvedBy: 'Admin'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Refresh the requests list
+      await fetchRequests();
+      
+      toast({
+        title: "Certificate Rejected",
+        description: "Certificate request has been rejected",
+        variant: "destructive"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to reject certificate: ${error.message}`,
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusIcon = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'pending':
@@ -65,7 +131,7 @@ const AdminDashboard = () => {
   };
 
   const getStatusVariant = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return 'default';
       case 'pending':
@@ -77,9 +143,20 @@ const AdminDashboard = () => {
     }
   };
 
-  const pendingRequests = requests.filter(req => req.status === 'pending');
-  const approvedRequests = requests.filter(req => req.status === 'approved');
-  const rejectedRequests = requests.filter(req => req.status === 'rejected');
+  const pendingRequests = requests.filter(req => req.status.toLowerCase() === 'pending');
+  const approvedRequests = requests.filter(req => req.status.toLowerCase() === 'approved');
+  const rejectedRequests = requests.filter(req => req.status.toLowerCase() === 'rejected');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,25 +256,64 @@ const AdminDashboard = () => {
                 </TabsList>
                 
                 <TabsContent value="all">
-                  <RequestsTable requests={requests} onApprove={handleApprove} onReject={handleReject} />
+                  <RequestsTable 
+                    requests={requests} 
+                    onApprove={handleApprove} 
+                    onReject={handleReject} 
+                    onViewLetter={setSelectedLetter}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="pending">
-                  <RequestsTable requests={pendingRequests} onApprove={handleApprove} onReject={handleReject} />
+                  <RequestsTable 
+                    requests={pendingRequests} 
+                    onApprove={handleApprove} 
+                    onReject={handleReject}
+                    onViewLetter={setSelectedLetter}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="approved">
-                  <RequestsTable requests={approvedRequests} onApprove={handleApprove} onReject={handleReject} />
+                  <RequestsTable 
+                    requests={approvedRequests} 
+                    onApprove={handleApprove} 
+                    onReject={handleReject}
+                    onViewLetter={setSelectedLetter}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="rejected">
-                  <RequestsTable requests={rejectedRequests} onApprove={handleApprove} onReject={handleReject} />
+                  <RequestsTable 
+                    requests={rejectedRequests} 
+                    onApprove={handleApprove} 
+                    onReject={handleReject}
+                    onViewLetter={setSelectedLetter}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
         </div>
       </main>
+
+      {/* Letter Preview Dialog */}
+      <Dialog open={!!selectedLetter} onOpenChange={() => setSelectedLetter('')}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Certificate Letter Preview</DialogTitle>
+            <DialogDescription>
+              Review the generated certificate letter
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <Textarea
+              value={selectedLetter}
+              readOnly
+              className="min-h-[400px] font-mono text-sm"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -206,10 +322,11 @@ const AdminDashboard = () => {
 const RequestsTable = ({ 
   requests, 
   onApprove, 
-  onReject 
+  onReject,
+  onViewLetter
 }) => {
   const getStatusIcon = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'pending':
@@ -222,7 +339,7 @@ const RequestsTable = ({
   };
 
   const getStatusVariant = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return 'default';
       case 'pending':
@@ -264,7 +381,7 @@ const RequestsTable = ({
             <TableCell>{request.studentName}</TableCell>
             <TableCell>{request.college}</TableCell>
             <TableCell>{request.certificateType}</TableCell>
-            <TableCell>{request.requestDate}</TableCell>
+            <TableCell>{new Date(request.requestDate).toLocaleDateString()}</TableCell>
             <TableCell>
               <Badge variant={getStatusVariant(request.status)} className="flex items-center gap-1 w-fit">
                 {getStatusIcon(request.status)}
@@ -272,32 +389,61 @@ const RequestsTable = ({
               </Badge>
             </TableCell>
             <TableCell>
-              {request.status === 'pending' && (
-                <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {request.generatedLetter && (
                   <Button
                     size="sm"
-                    onClick={() => onApprove(request.id)}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    variant="outline"
+                    onClick={() => onViewLetter(request.generatedLetter)}
                   >
-                    <Check className="h-3 w-3 mr-1" />
-                    Approve
+                    <Eye className="h-3 w-3 mr-1" />
+                    View Letter
                   </Button>
+                )}
+                {request.status.toLowerCase() === 'pending' && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => onApprove(request.id)}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Apply Official Seal
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onReject(request.id)}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Reject
+                    </Button>
+                  </>
+                )}
+                {request.status.toLowerCase() === 'approved' && request.downloadUrl && (
                   <Button
                     size="sm"
-                    variant="destructive"
-                    onClick={() => onReject(request.id)}
+                    variant="outline"
+                    onClick={() => window.open(`http://localhost:5000${request.downloadUrl}`, '_blank')}
+                    className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
                   >
-                    <X className="h-3 w-3 mr-1" />
-                    Reject
+                    <FileText className="h-3 w-3 mr-1" />
+                    Download Sealed PDF
                   </Button>
-                </div>
-              )}
-              {request.status === 'approved' && (
-                <span className="text-sm text-green-600 font-medium">✓ E-Signature Applied</span>
-              )}
-              {request.status === 'rejected' && (
-                <span className="text-sm text-red-600 font-medium">✗ Rejected</span>
-              )}
+                )}
+                {request.status.toLowerCase() === 'approved' && (
+                  <div className="text-xs text-green-600 font-medium flex items-center">
+                    ✓ Officially Sealed
+                    <br />
+                    <span className="text-[10px] opacity-75">
+                      {request.downloadUrl && request.downloadUrl.includes('-') 
+                        ? request.downloadUrl.split('/').pop().replace('.pdf', '') 
+                        : 'PDF Generated'
+                      }
+                    </span>
+                  </div>
+                )}
+              </div>
             </TableCell>
           </TableRow>
         ))}
@@ -307,3 +453,4 @@ const RequestsTable = ({
 };
 
 export default AdminDashboard;
+

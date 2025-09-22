@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,48 +6,120 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Search, FileText, Copy, CheckCircle, Clock, XCircle } from "lucide-react";
-import { getRequestsByStudent } from "@/data/mockData";
+import { GraduationCap, Search, FileText, Download, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const StatusTracker = () => {
   const [studentName, setStudentName] = useState("");
-  const [requests, setRequests] = useState([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [allRequests, setAllRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const { toast } = useToast();
 
-  const handleSearch = () => {
+  // Load all requests on component mount
+  useEffect(() => {
+    fetchAllRequests();
+  }, []);
+
+  // Filter requests when search term changes
+  useEffect(() => {
     if (!studentName.trim()) {
+      setFilteredRequests(allRequests);
+    } else {
+      const filtered = allRequests.filter(request => 
+        request.studentName.toLowerCase().includes(studentName.toLowerCase())
+      );
+      setFilteredRequests(filtered);
+    }
+  }, [studentName, allRequests]);
+
+  const fetchAllRequests = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/requests');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      setAllRequests(data.requests || []);
+      setFilteredRequests(data.requests || []);
+    } catch (error) {
+      console.error('Error fetching all requests:', error);
       toast({
         title: "Error",
-        description: "Please enter your name to search for requests",
+        description: "Failed to fetch requests. Please check if the server is running.",
         variant: "destructive"
       });
+      setAllRequests([]);
+      setFilteredRequests([]);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!studentName.trim()) {
+      setFilteredRequests(allRequests);
       return;
     }
     
-    const studentRequests = getRequestsByStudent(studentName);
-    setRequests(studentRequests);
-    setHasSearched(true);
-    
-    if (studentRequests.length === 0) {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/status?name=${encodeURIComponent(studentName.trim())}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      setFilteredRequests(data.requests || []);
+      
+      if (data.requests.length === 0) {
+        toast({
+          title: "No requests found",
+          description: "No certificate requests found for this name",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
       toast({
-        title: "No requests found",
-        description: "No certificate requests found for this name",
+        title: "Error",
+        description: "Failed to fetch requests. Please check if the server is running.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setStudentName("");
+    fetchAllRequests();
+  };
+
+  const handleDownload = (request) => {
+    if (request.downloadUrl) {
+      // Show toast message about the download
+      toast({
+        title: "Downloading Official Certificate",
+        description: `Downloading ${request.certificateType} for ${request.studentName} with official seal. File: ${request.studentName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}-${request.certificateType.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}.pdf`,
+      });
+      
+      // Open the PDF in a new tab
+      window.open(`http://localhost:5000${request.downloadUrl}`, '_blank');
+    } else {
+      toast({
+        title: "Download not available",
+        description: "Certificate is not yet approved or PDF not generated",
+        variant: "destructive"
       });
     }
   };
 
-  const copyLetter = (letter) => {
-    navigator.clipboard.writeText(letter);
-    toast({
-      title: "Copied!",
-      description: "Letter copied to clipboard",
-    });
-  };
-
   const getStatusIcon = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'pending':
@@ -60,7 +132,7 @@ const StatusTracker = () => {
   };
 
   const getStatusVariant = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return 'default';
       case 'pending':
@@ -71,6 +143,17 @@ const StatusTracker = () => {
         return 'outline';
     }
   };
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading certificate requests...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,10 +188,10 @@ const StatusTracker = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Track Your Certificate Requests
+              Track Certificate Requests
             </h2>
             <p className="text-muted-foreground">
-              Enter your name to view the status of your certificate requests
+              View all certificate requests or search by student name
             </p>
           </div>
 
@@ -117,28 +200,49 @@ const StatusTracker = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Search className="h-5 w-5" />
-                Search Your Requests
+                Search Certificate Requests
               </CardTitle>
               <CardDescription>
-                Enter your full name as submitted in the certificate request
+                Enter student name to filter requests, or leave blank to see all requests
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <Label htmlFor="studentName">Student Name</Label>
+                  <Label htmlFor="studentName">Student Name (Optional)</Label>
                   <Input
                     id="studentName"
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
-                    placeholder="Enter your full name"
+                    placeholder="Enter student name to filter..."
                     className="mt-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
-                <div className="flex items-end">
-                  <Button onClick={handleSearch} className="bg-institutional hover:bg-institutional/90">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
+                <div className="flex items-end gap-2">
+                  <Button 
+                    onClick={handleSearch} 
+                    disabled={isLoading}
+                    className="bg-institutional hover:bg-institutional/90"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Search
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    onClick={handleRefresh}
+                    variant="outline"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Show All
                   </Button>
                 </div>
               </div>
@@ -146,77 +250,98 @@ const StatusTracker = () => {
           </Card>
 
           {/* Results Section */}
-          {hasSearched && (
-            <Card className="shadow-form">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Your Certificate Requests ({requests.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {requests.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Request ID</TableHead>
-                        <TableHead>Certificate Type</TableHead>
-                        <TableHead>College</TableHead>
-                        <TableHead>Request Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {requests.map((request) => (
-                        <TableRow key={request.id}>
-                          <TableCell className="font-medium">#{request.id}</TableCell>
-                          <TableCell>{request.certificateType}</TableCell>
-                          <TableCell>{request.college}</TableCell>
-                          <TableCell>{request.requestDate}</TableCell>
-                          <TableCell>
-                            <Badge variant={getStatusVariant(request.status)} className="flex items-center gap-1 w-fit">
-                              {getStatusIcon(request.status)}
-                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {request.status === 'approved' && request.generatedLetter && (
+          <Card className="shadow-form">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Certificate Requests ({filteredRequests.length})
+                {studentName && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    - Filtered by: "{studentName}"
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {filteredRequests.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Request ID</TableHead>
+                      <TableHead>Student Name</TableHead>
+                      <TableHead>Certificate Type</TableHead>
+                      <TableHead>College</TableHead>
+                      <TableHead>Request Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell className="font-medium">#{request.id}</TableCell>
+                        <TableCell className="font-medium">{request.studentName}</TableCell>
+                        <TableCell>{request.certificateType}</TableCell>
+                        <TableCell>{request.college}</TableCell>
+                        <TableCell>{new Date(request.requestDate).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(request.status)} className="flex items-center gap-1 w-fit">
+                            {getStatusIcon(request.status)}
+                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {request.status.toLowerCase() === 'approved' && request.downloadUrl ? (
+                            <div className="space-y-1">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => copyLetter(request.generatedLetter)}
-                                className="flex items-center gap-1"
+                                onClick={() => handleDownload(request)}
+                                className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
                               >
-                                <Copy className="h-3 w-3" />
-                                Copy Letter
+                                <Download className="h-3 w-3" />
+                                Download Official PDF
                               </Button>
-                            )}
-                            {request.status === 'pending' && (
-                              <span className="text-sm text-muted-foreground">Awaiting approval</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">No Requests Found</h3>
-                    <p className="text-muted-foreground mb-4">
-                      No certificate requests found for "{studentName}"
-                    </p>
-                    <Link to="/request-certificate">
-                      <Button variant="institutional">
-                        Submit New Request
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                              <div className="text-xs text-green-600 font-medium">
+                                ✓ Officially Sealed & Signed
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                File: {request.studentName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}-{request.certificateType.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}.pdf
+                              </div>
+                            </div>
+                          ) : request.status.toLowerCase() === 'pending' ? (
+                            <span className="text-sm text-muted-foreground">Awaiting approval</span>
+                          ) : request.status.toLowerCase() === 'rejected' ? (
+                            <span className="text-sm text-red-600">Request rejected</span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No action available</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    {studentName ? "No Matching Requests Found" : "No Certificate Requests"}
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {studentName 
+                      ? `No certificate requests found matching "${studentName}"`
+                      : "No certificate requests have been submitted yet"
+                    }
+                  </p>
+                  <Link to="/request-certificate">
+                    <Button variant="institutional">
+                      Submit New Request
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
