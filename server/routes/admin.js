@@ -59,22 +59,30 @@ router.post('/approve/:id', async (req, res) => {
 
     const request = requestResult.recordset[0];
 
+    // Clean up letterText before PDF generation - remove asterisks, dashes, and specific note
+    const cleanedLetterText = request.generatedLetter
+      .replace(/\*/g, '')
+      .replace(/--/g, '')
+      .replace(/Note: This certificate is valid for official use only and should not be used for any unauthorized purposes\./g, '')
+      .trim();
+
     console.log('🎯 Approving request and generating PDF with official seal:', {
       id: request.id,
       studentName: request.studentName,
       certificateType: request.certificateType,
-      expectedFileName: `${request.studentName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '')}-${request.certificateType.toLowerCase().replace(/certificate/g, '').replace(/[^a-zA-Z0-9]/g, '')}.pdf`
+      expectedFileName: `${request.studentName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '')}-${request.certificateType.toLowerCase().replace(/certificate/g, '').replace(/[^a-zA-Z0-9]/g, '')}.pdf`,
+      sealStatus: 'APPLYING_OFFICIAL_SEAL'
     });
 
-    // Generate PDF with seal and signature from public folder
+    // Generate PDF with principal signature and official seal
     const pdfFileName = await generateCertificatePDF(
-      request.generatedLetter,
+      cleanedLetterText,
       request.id,
       request.studentName,
       request.certificateType
     );
 
-    console.log('✅ PDF generated successfully with official seal and signature:', pdfFileName);
+    console.log('✅ PDF generated successfully with official seal and signature:', pdfFileName, '| SEAL APPLIED: YES');
 
     // Update database with the generated PDF filename
     await pool.request()
@@ -96,7 +104,8 @@ router.post('/approve/:id', async (req, res) => {
       status: 'Approved',
       downloadUrl: `/certificates/${pdfFileName}`,
       pdfFileName: pdfFileName,
-      sealApplied: true
+      sealApplied: true,
+      sealStatus: 'OFFICIAL_SEAL_APPLIED'
     });
   } catch (error) {
     console.error('❌ Error approving request and generating sealed PDF:', error);

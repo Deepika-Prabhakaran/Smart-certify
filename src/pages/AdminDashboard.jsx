@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea";
 import { GraduationCap, Check, X, FileText, Users, Clock, CheckCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import RECSeal from "@/components/ui/RECSeal";
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -309,8 +310,27 @@ const AdminDashboard = () => {
             <Textarea
               value={selectedLetter}
               readOnly
-              className="min-h-[400px] font-mono text-sm"
+              className="min-h-[400px] font-mono text-sm leading-relaxed"
             />
+            {/* Show seal only for approved certificates */}
+            {requests.find(req => req.generatedLetter === selectedLetter)?.status?.toLowerCase() === 'approved' && (
+              <div className="mt-6 border-t pt-4">
+                <div className="mb-3 font-semibold text-institutional text-sm">
+                  Official College Seal:
+                </div>
+                <div className="flex justify-between items-end">
+                  <div className="flex-shrink-0">
+                    <RECSeal sealId={`CERT-${new Date().getFullYear()}-${requests.find(req => req.generatedLetter === selectedLetter)?.id || '000'}`} />
+                  </div>
+                  <div className="text-right text-sm text-muted-foreground">
+                    <div className="font-semibold">Principal</div>
+                    <div className="italic">S.N Murugesan</div>
+                    <div>Principal, REC</div>
+                    <div className="text-xs mt-2">Digitally Signed by Principal</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

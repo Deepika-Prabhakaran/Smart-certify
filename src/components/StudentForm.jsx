@@ -245,9 +245,15 @@ Make it look like an official academic document.`
               <Textarea
                 name="generatedLetter"
                 value={generatedLetter}
-                readOnly
+                onChange={e => setGeneratedLetter(e.target.value)}
                 className="min-h-[400px] bg-transparent border-none resize-none font-mono text-sm leading-relaxed"
               />
+              {/* Note: Official College Seal will be added after admin approval */}
+              <div className="mt-6 border-t pt-4">
+                <div className="mb-3 font-semibold text-muted-foreground text-sm">
+                  Note: Official College Seal will be applied after admin approval
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
