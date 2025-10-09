@@ -1,4 +1,4 @@
-# Genesis Certify - Certificate Automation System
+# Smart Certify - Certificate Automation System
 
 A modern web application for automating academic certificate generation and management with digital signatures and official seals.
 
