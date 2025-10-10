@@ -1,12 +1,26 @@
 {
-  "name": "genesis-certify",
+  "name": "smart-certify",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Smart certificate management system for educational institutions with AI-powered automation",
+  "author": "Your Name",
+  "homepage": "https://github.com/yourusername/smart-certify",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/smart-certify.git"
+  },
+  "keywords": [
+    "certificate",
+    "management",
+    "education",
+    "automation",
+    "AI",
+    "digital-certificates"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -40,12 +54,14 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-query": "^5.83.0",
+    "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",

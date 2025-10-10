@@ -39,6 +39,53 @@ const StudentForm = ({ onDataChange, formData: parentFormData }) => {
     }
   }, [formData, generatedLetter, onDataChange]);
 
+  // Add success state for form submission
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Add effect to listen for successful form submission from parent
+  useEffect(() => {
+    // This can be triggered by parent component when form is successfully submitted
+    if (parentFormData?.isSubmitted) {
+      setIsSubmitted(true);
+      
+      // Show big centered success toast
+      toast({
+        title: (
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+              <CheckCircle className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-green-800 font-semibold">Certificate Generated!</span>
+          </div>
+        ),
+        description: (
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-2 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>AI-powered professional letter created</span>
+            </div>
+            <div className="flex items-center gap-2 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Ready for submission</span>
+            </div>
+          </div>
+        ),
+        duration: 4000, // Auto dismiss after 4 seconds
+        style: {
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)',
+          border: '2px solid #22c55e',
+          borderRadius: '8px',
+          padding: '12px'
+        }
+      });
+
+      // Reset after showing toast
+      setTimeout(() => {
+        setIsSubmitted(false);
+      }, 5000);
+    }
+  }, [parentFormData?.isSubmitted, toast]);
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -106,9 +153,33 @@ Make it look like an official academic document.`
       setGeneratedLetter(letter);
       
       toast({
-        title: "Certificate Generated",
-        description: "Your certificate letter has been successfully generated.",
-        variant: "default",
+        title: (
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+              <CheckCircle className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-green-800 font-semibold">Certificate Generated!</span>
+          </div>
+        ),
+        description: (
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-2 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>AI-powered professional letter created</span>
+            </div>
+            <div className="flex items-center gap-2 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Ready for submission</span>
+            </div>
+          </div>
+        ),
+        duration: 4000, // Auto dismiss after 4 seconds
+        style: {
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)',
+          border: '2px solid #22c55e',
+          borderRadius: '8px',
+          padding: '12px'
+        }
       });
     } catch (error) {
       console.error("Error generating letter:", error);

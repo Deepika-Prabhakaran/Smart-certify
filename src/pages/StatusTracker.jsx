@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Search, FileText, Download, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react";
+import { GraduationCap, Search, FileText, Download, CheckCircle, Clock, XCircle, RefreshCw, LogOut, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const StatusTracker = () => {
@@ -16,11 +16,20 @@ const StatusTracker = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Load all requests on component mount
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userType = localStorage.getItem('userType');
+    
+    if (!token) {
+      navigate('/student-signin');
+      return;
+    }
+
     fetchAllRequests();
-  }, []);
+  }, [navigate]);
 
   // Filter requests when search term changes
   useEffect(() => {
@@ -118,6 +127,18 @@ const StatusTracker = () => {
     }
   };
 
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('studentData');
+    localStorage.removeItem('adminData');
+    toast({
+      title: "Signed Out", 
+      description: "You have been signed out successfully.",
+    });
+    navigate('/student-signin');
+  };
+
   const getStatusIcon = (status) => {
     switch (status.toLowerCase()) {
       case 'approved':
@@ -165,19 +186,23 @@ const StatusTracker = () => {
               <GraduationCap className="h-8 w-8 text-institutional" />
               <h1 className="text-2xl font-bold text-foreground">Certificate Status Tracker</h1>
             </div>
-            <nav className="flex space-x-6">
-              <Link to="/" className="text-muted-foreground hover:text-foreground font-medium">
-                Home
+            <nav className="flex items-center space-x-4">
+              <Link to="/home">
+                <Button variant="ghost" size="sm">
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </Button>
               </Link>
-              <Link to="/request-certificate" className="text-muted-foreground hover:text-foreground font-medium">
-                Request Certificate
+              <Link to="/admin-dashboard">
+                <Button variant="ghost" size="sm">
+                  Admin Dashboard
+                </Button>
               </Link>
-              <Link to="/status-tracker" className="text-foreground font-medium">
-                Track Status
-              </Link>
-              <Link to="/admin-dashboard" className="text-muted-foreground hover:text-foreground font-medium">
-                Admin Dashboard
-              </Link>
+              <span className="text-sm font-medium text-foreground">Track Status</span>
+              <Button onClick={handleSignOut} variant="outline" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </nav>
           </div>
         </div>

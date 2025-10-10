@@ -6,6 +6,7 @@ A modern web application for automating academic certificate generation and mana
 
 - **Automated Certificate Generation**: AI-powered letter generation using Google's Gemini API
 - **Digital Signatures & Seals**: Professional PDF certificates with official seals
+- **Student Authentication**: Secure sign-up and sign-in system for students and administrators
 - **Admin Dashboard**: Complete certificate request management system
 - **Status Tracking**: Real-time request status updates
 - **Secure PDF Generation**: Certificates with unique IDs and verification
@@ -24,6 +25,7 @@ A modern web application for automating academic certificate generation and mana
 - **Node.js** with Express
 - **SQL Server** database
 - **PDFKit** for PDF generation
+- **JWT Authentication** with bcrypt
 - **Google Gemini AI** for letter generation
 - **CORS** enabled for cross-origin requests
 
@@ -37,8 +39,8 @@ A modern web application for automating academic certificate generation and mana
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/genesis-certify.git
-cd genesis-certify
+git clone https://github.com/yourusername/smart-certify.git
+cd smart-certify
 ```
 
 ### 2. Install dependencies
@@ -51,6 +53,7 @@ npm install
 #### Backend
 ```bash
 cd server
+npm install bcrypt jsonwebtoken
 npm install
 ```
 
@@ -64,28 +67,15 @@ DB_DATABASE=CertificateDB
 DB_USER=your_db_username
 DB_PASSWORD=your_db_password
 PORT=5000
+JWT_SECRET=your-super-secret-jwt-key-here-make-it-long-and-random-123456789
 ```
 
 ### 4. Database Setup
 
-Run the SQL script to create the database and table:
-```sql
-CREATE DATABASE CertificateDB;
-USE CertificateDB;
-
-CREATE TABLE Requests (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    studentName NVARCHAR(255) NOT NULL,
-    college NVARCHAR(255) NOT NULL,
-    certificateType NVARCHAR(255) NOT NULL,
-    generatedLetter NTEXT NOT NULL,
-    requestDate DATETIME DEFAULT GETDATE(),
-    status NVARCHAR(50) DEFAULT 'Pending',
-    approvedBy NVARCHAR(255),
-    approvedDate DATETIME,
-    pdfPath NVARCHAR(500)
-);
-```
+The application will automatically create the required tables:
+- `MasterStudent` - Student authentication data
+- `MasterAdmin` - Admin authentication data  
+- `Requests` - Certificate requests with PDF tracking
 
 ## 🎯 Usage
 
@@ -100,38 +90,47 @@ The server will run on `http://localhost:5000`
 ```bash
 npm run dev
 ```
-The application will run on `http://localhost:5173`
+The application will run on `http://localhost:8080`
 
 ### 3. Access the Application
-- **Student Portal**: Request certificates and track status
-- **Admin Dashboard**: Review and approve certificate requests at `/admin-dashboard`
+- **Student Sign Up**: Create account at `/student-signup`
+- **Student Sign In**: Access portal at `/student-signin`
+- **Admin Portal**: Sign in at `/admin-signin`
+- **Certificate Requests**: Students can request certificates after signing in
+- **Admin Dashboard**: Review and approve requests at `/admin-dashboard`
 
 ## 📁 Project Structure
 
 ```
-genesis-certify/
+smart-certify/
 ├── src/                    # Frontend source code
 │   ├── components/         # Reusable UI components
-│   ├── pages/             # Page components
+│   ├── pages/             # Page components (SignIn, SignUp, Dashboard)
 │   ├── lib/               # Utilities and configurations
 │   └── hooks/             # Custom React hooks
 ├── server/                # Backend source code
-│   ├── routes/            # API routes
+│   ├── routes/            # API routes (auth, requests, admin)
 │   ├── utils/             # Utilities (PDF generation, etc.)
 │   └── db.js              # Database connection
-├── public/                # Static assets
+├── public/                # Static assets (favicon, etc.)
 ├── certificates/          # Generated PDF certificates (auto-created)
 └── README.md
 ```
 
 ## 🔧 API Endpoints
 
-### Public Routes
-- `POST /api/submit-request` - Submit certificate request
-- `GET /api/status/:id` - Check request status
-- `POST /api/generate-letter` - Generate certificate letter
+### Authentication Routes
+- `POST /api/auth/student/signup` - Student registration
+- `POST /api/auth/student/signin` - Student login
+- `POST /api/auth/admin/signup` - Admin registration
+- `POST /api/auth/admin/signin` - Admin login
+- `GET /api/auth/verify` - Verify JWT token
 
-### Admin Routes
+### Student Routes (Protected)
+- `POST /api/submit-request` - Submit certificate request
+- `GET /api/status` - Get student's request status
+
+### Admin Routes (Protected)
 - `GET /api/admin/requests` - Get all requests
 - `POST /api/admin/approve/:id` - Approve request and generate PDF
 - `POST /api/admin/reject/:id` - Reject request
@@ -143,25 +142,33 @@ genesis-certify/
 
 - **Professional Layout**: Clean, institutional design
 - **Digital Signatures**: Authorized signature with admin details
-- **Official Seal**: Text-based seal with verification details
-  ```
-  ═══════════════════════════════
-  ✔ CERTIFIED & APPROVED ✔
-  ─────────────────────────────
-  Digitally Signed by Admin
-  Seal ID: CERT-2024-XXX
-  ═══════════════════════════════
-  ```
+- **Official Seal**: Circular seal with verification details
 - **Unique Naming**: Files saved as `studentname-certificatetype.pdf`
 - **Verification Info**: Certificate ID, timestamps, and official markings
+- **Single Page Layout**: All content fits perfectly on one A4 page
 
 ## 🔒 Security Features
 
-- Input validation and sanitization
-- SQL injection prevention
-- CORS configuration
-- Secure file handling
-- Request ID-based tracking
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: bcrypt encryption for passwords
+- **Input Validation**: SQL injection prevention
+- **CORS Configuration**: Secure cross-origin requests
+- **Route Protection**: Authentication required for sensitive operations
+- **User Type Verification**: Students and admins have separate access levels
+
+## 📱 User Experience
+
+### Student Portal
+1. **Registration**: Students create accounts with student ID and personal details
+2. **Certificate Request**: AI-generated letters using Gemini API
+3. **Status Tracking**: Real-time updates on request approval
+4. **PDF Download**: Direct download of approved certificates
+
+### Admin Portal  
+1. **Dashboard Overview**: Statistics and request management
+2. **Request Review**: View generated letters before approval
+3. **PDF Generation**: One-click PDF creation with official seals
+4. **Bulk Management**: Filter and process multiple requests
 
 ## 📝 Development
 
@@ -199,11 +206,13 @@ For support and questions:
 
 - [ ] Email notifications for status updates
 - [ ] Bulk certificate processing
-- [ ] Advanced PDF templates
-- [ ] User authentication system
-- [ ] Certificate verification portal
+- [ ] Advanced PDF templates with custom branding
+- [ ] Multi-language support
+- [ ] Certificate verification portal with QR codes
 - [ ] REST API documentation with Swagger
+- [ ] Mobile app for certificate requests
+- [ ] Integration with student information systems
 
 ---
 
-**Genesis Certify** - Streamlining academic certificate generation with modern technology.
+**Smart Certify** - Revolutionizing academic certificate generation with AI-powered automation and smart digital workflows.

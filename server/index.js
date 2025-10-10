@@ -5,9 +5,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-import { connectDB } from './db.js';
+import { connectDB, initializeTables } from './db.js';
 import requestsRoutes from './routes/requests.js';
 import adminRoutes from './routes/admin.js';
+import authRoutes from './routes/auth.js';
 
 // ES modules __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -32,13 +33,15 @@ app.use('/certificates', express.static(path.join(__dirname, 'certificates')));
 // API Routes
 app.use('/api', requestsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'Genesis Certify Backend'
+    service: 'Smart Certify Backend',
+    version: '1.0.0'
   });
 });
 
@@ -58,10 +61,14 @@ const startServer = async () => {
   try {
     await connectDB();
     
+    // Initialize database tables for authentication
+    await initializeTables();
+    
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/api/health`);
       console.log(`Frontend should connect to: http://localhost:${PORT}/api/...`);
+      console.log(`Authentication routes available at: http://localhost:${PORT}/api/auth/...`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { GraduationCap, Check, X, FileText, Users, Clock, CheckCircle, Eye } from "lucide-react";
+import { GraduationCap, Check, X, FileText, Users, Clock, CheckCircle, Eye, LogOut, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RECSeal from "@/components/ui/RECSeal";
 
@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLetter, setSelectedLetter] = useState('');
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchRequests();
@@ -70,10 +71,40 @@ const AdminDashboard = () => {
       // Refresh the requests list
       await fetchRequests();
       
-      // Show success with details about the generated file
+      // Show success with GPay-style toast
       toast({
-        title: "✅ Certificate Officially Sealed!",
-        description: `PDF generated as "${result.pdfFileName}" with digital signature and official institutional seal. Ready for download.`,
+        title: (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+              <CheckCircle className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-green-800 font-semibold">Certificate Officially Sealed!</span>
+          </div>
+        ),
+        description: (
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-2 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>PDF: <strong className="text-green-800">{result.pdfFileName}</strong></span>
+            </div>
+            <div className="flex items-center gap-2 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Digital signature & official seal applied</span>
+            </div>
+            <div className="flex items-center gap-2 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Ready for student download</span>
+            </div>
+          </div>
+        ),
+        duration: 5000, // Auto dismiss after 5 seconds
+        style: {
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)',
+          border: '2px solid #22c55e',
+          borderRadius: '12px',
+          padding: '16px',
+          boxShadow: '0 10px 25px -5px rgba(34, 197, 94, 0.2)'
+        }
       });
     } catch (error) {
       toast({
@@ -116,6 +147,17 @@ const AdminDashboard = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('adminData');
+    toast({
+      title: "Signed Out",
+      description: "You have been signed out successfully.",
+    });
+    navigate('/admin-signin');
   };
 
   const getStatusIcon = (status) => {
@@ -167,21 +209,25 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <GraduationCap className="h-8 w-8 text-institutional" />
-              <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+              <h1 className="text-2xl font-bold text-foreground">Smart Certify Admin</h1>
             </div>
-            <nav className="flex space-x-6">
-              <Link to="/" className="text-muted-foreground hover:text-foreground font-medium">
-                Home
+            <nav className="flex items-center space-x-4">
+              <Link to="/home">
+                <Button variant="ghost" size="sm">
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </Button>
               </Link>
-              <Link to="/request-certificate" className="text-muted-foreground hover:text-foreground font-medium">
-                Request Certificate
+              <Link to="/status-tracker">
+                <Button variant="ghost" size="sm">
+                  Track Status
+                </Button>
               </Link>
-              <Link to="/status-tracker" className="text-muted-foreground hover:text-foreground font-medium">
-                Track Status
-              </Link>
-              <Link to="/admin-dashboard" className="text-foreground font-medium">
-                Admin Dashboard
-              </Link>
+              <span className="text-sm font-medium text-foreground">Admin Dashboard</span>
+              <Button onClick={handleSignOut} variant="outline" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </nav>
           </div>
         </div>
@@ -192,10 +238,10 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Certificate Management Dashboard
+              Smart Certificate Management Dashboard
             </h2>
             <p className="text-muted-foreground">
-              Review and approve certificate requests with digital signatures
+              AI-powered certificate generation with digital signatures and official seals
             </p>
           </div>
 
