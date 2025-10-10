@@ -1,55 +1,35 @@
-name: Build & Deploy to Azure WebApp
+name: Build and Push Docker image to Azure Container Registry
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - "Dockerfile"
-      - "api/**"
-      - ".github/workflows/deploy.yml"
-
-permissions:
-  id-token: write
-  contents: read
+    branches:
+      - main
 
 env:
-  WEBAPP_NAME: cert-admin-webapp-24
-  RESOURCE_GROUP: Cloud_Computing_Project
-  ACR_NAME: cloudacr24
-  IMAGE_NAME: backend
+  REGISTRY: <your-acr-name>.azurecr.io
+  IMAGE_NAME: <your-image-name>
 
 jobs:
-  build-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Azure login (OIDC)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Azure CLI - Get ACR login server
-        id: acr
-        run: |
-          ACR_LOGIN=$(az acr show --name $ACR_NAME --query loginServer -o tsv)
-          echo "acr_login=$ACR_LOGIN" >> $GITHUB_OUTPUT
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build and Push Docker image
+      - name: Build and push Docker image
         run: |
-          IMAGE_TAG=${GITHUB_SHA::7}
-          docker build -t ${{ steps.acr.outputs.acr_login }}/$IMAGE_NAME:$IMAGE_TAG .
-          az acr login --name $ACR_NAME
-          docker push ${{ steps.acr.outputs.acr_login }}/$IMAGE_NAME:$IMAGE_TAG
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-        id: buildpush
-
-      - name: Update Azure Web App container
-        run: |
-          az webapp config container set \
-            --name $WEBAPP_NAME \
-            --resource-group $RESOURCE_GROUP \
-            --docker-custom-image-name "${{ steps.acr.outputs.acr_login }}/$IMAGE_NAME:${{ steps.buildpush.outputs.image_tag }}" \
-            --docker-registry-server-url "https://${{ steps.acr.outputs.acr_login }}"
+          docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} .
+          docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}

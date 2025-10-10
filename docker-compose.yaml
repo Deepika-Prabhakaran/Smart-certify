@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./server
+    container_name: mern-backend
+    env_file: .env
+    ports:
+      - "5000:5000"
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: mern-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
