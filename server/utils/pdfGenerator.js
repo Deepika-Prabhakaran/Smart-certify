@@ -23,36 +23,56 @@ export const generateCertificatePDF = async (letterText, requestId, studentName,
     const fileName = `${sanitizedStudentName}-${sanitizedCertType}.pdf`;
     const filePath = path.join(certificatesDir, fileName);
 
-    // Clean up letterText: remove asterisks, double dashes, and specific note
-    const cleanedLetterText = letterText
+    // Clean up letterText: remove asterisks, double dashes, specific note, and dynamic signature blocks
+    let cleanedLetterText = letterText
       .replace(/\*/g, '')
       .replace(/--/g, '')
       .replace(/-/g, '')
       .replace(/Note: This certificate is valid for official use only and should not be used for any unauthorized purposes\./g, '')
       .trim();
 
-    return new Promise((resolve, reject) => {
+    // Remove dynamic signature blocks using pattern matching
+    // Pattern 1: "Yours faithfully," followed by signature elements
+    cleanedLetterText = cleanedLetterText.replace(/Yours faithfully,[\s\S]*$/gi, 'Yours faithfully,');
+    
+    // Pattern 2: "Sincerely," followed by signature elements  
+    cleanedLetterText = cleanedLetterText.replace(/Sincerely,[\s\S]*$/gi, 'Sincerely,');
+    
+    // Pattern 3: "Yours truly," followed by signature elements
+    cleanedLetterText = cleanedLetterText.replace(/Yours truly,[\s\S]*$/gi, 'Yours truly,');
+    
+    // Pattern 4: Remove any standalone signature placeholder patterns
+    cleanedLetterText = cleanedLetterText
+      .replace(/\[Signature\]/gi, '')
+      .replace(/\[Name of[^\]]*\]/gi, '')
+      .replace(/\[Designation[^\]]*\]/gi, '')
+      .replace(/Authorized Signatory[\s\S]*$/gi, '')
+      .replace(/\(Seal\/Stamp[^\)]*\)/gi, '')
+      .replace(/\n\s*\n\s*[A-Z\s]{2,}\s*$/g, '') // Remove trailing college names in caps
+      .trim();
+
+      return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
-        margins: { top: 50, bottom: 80, left: 50, right: 50 }
+        margins: { top: 40, bottom: 40, left: 50, right: 50 }
       });
 
       const stream = fs.createWriteStream(filePath);
       doc.pipe(stream);
 
       // College Header
-      doc.fontSize(20)
+      doc.fontSize(18)
          .font('Helvetica-Bold')
          .fillColor('#1a365d')
          .text('Rajalakshmi Engineering College', { align: 'center' })
-         .moveDown(0.1);
+         .moveDown(0.05);
 
-      doc.fontSize(10)
+      doc.fontSize(9)
          .font('Helvetica')
          .fillColor('#333333')
          .text('Thandalam, Chennai - 602105, Tamil Nadu, India', { align: 'center' })
          .text('Phone: +91-44-37181111   Email: info@rajalakshmi.edu.in', { align: 'center' })
-         .moveDown(0.3);
+         .moveDown(0.1);
 
       // Decorative line
       doc.strokeColor('#1a365d')
@@ -60,47 +80,51 @@ export const generateCertificatePDF = async (letterText, requestId, studentName,
          .moveTo(50, doc.y)
          .lineTo(545, doc.y)
          .stroke()
-         .moveDown(0.8);
+         .moveDown(0.3);
 
       // Certificate Type centered below header
-      doc.fontSize(16)
+      doc.fontSize(14)
          .font('Helvetica-Bold')
          .fillColor('#0066cc')
          .text(certificateType, { align: 'center' })
-         .moveDown(0.8);
+         .moveDown(0.3);
 
-      // Letter body - centered and justified with better font
-      doc.fontSize(13)
+      // Letter body - centered and justified with minimal spacing
+      doc.fontSize(10)
          .font('Times-Roman')
          .fillColor('#333')
          .text(cleanedLetterText, {
            align: 'justify',
            width: 445,
            indent: 0,
-           lineGap: 4
+           lineGap: 2
          })
-         .moveDown(3);
+         .moveDown(0.5);
 
-      // Calculate positions for bottom elements
+      // Calculate current position and ensure everything fits on one page
+      const currentY = doc.y;
       const pageHeight = 842; // A4 height in points
-      const bottomMargin = 80;
-      const sealBottomY = pageHeight - bottomMargin - 70; // 70px from bottom
-      const signatureBottomY = pageHeight - bottomMargin - 70;
+      const bottomMargin = 40;
+      const requiredSpaceForBottom = 80; // Reduced space needed
+      
+      // Position elements closer together
+      const sealY = currentY + 10;
+      const signatureY = currentY + 10;
 
       // Left bottom - Official Seal with label
-      doc.fontSize(10)
+      doc.fontSize(8)
          .font('Helvetica-Bold')
          .fillColor('#1a365d')
-         .text('Official College Seal:', 70, sealBottomY - 20);
+         .text('Official College Seal:', 70, sealY - 10);
 
-      addSimpleSeal(doc, 70, sealBottomY, requestId);
+      addSimpleSeal(doc, 70, sealY, requestId);
 
       // Right bottom - Principal signature
-      addPrincipalSignature(doc, 350, signatureBottomY);
+      addPrincipalSignature(doc, 350, signatureY);
 
-      // Footer at very bottom
-      const footerY = pageHeight - 40;
-      doc.fontSize(8)
+      // Footer positioned closer
+      const footerY = Math.max(sealY + 75, signatureY + 65);
+      doc.fontSize(7)
          .font('Helvetica')
          .fillColor('#666666')
          .text(`Certificate ID: ${requestId} | Student: ${studentName} | Generated: ${new Date().toLocaleDateString()}`, 50, footerY, { 
@@ -108,10 +132,11 @@ export const generateCertificatePDF = async (letterText, requestId, studentName,
            width: 495
          });
 
-      // Border
+      // Border - ensure it encompasses all content on same page
+      const borderHeight = footerY - 35;
       doc.strokeColor('#1a365d')
          .lineWidth(2)
-         .rect(45, 45, 505, 752)
+         .rect(45, 35, 505, borderHeight)
          .stroke();
 
       doc.end();
@@ -129,39 +154,39 @@ export const generateCertificatePDF = async (letterText, requestId, studentName,
   }
 };
 
-// Principal signature function - repositioned for right bottom
+// Principal signature function - compact and positioned properly
 function addPrincipalSignature(doc, x, y) {
-  doc.fontSize(10)
+  doc.fontSize(8)
      .font('Helvetica-Bold')
      .fillColor('#1a365d')
      .text('Principal', x, y, { align: 'left' });
 
-  doc.fontSize(14)
+  doc.fontSize(11)
      .font('Times-Italic')
      .fillColor('#1a365d')
-     .text('S.N Murugesan', x, y + 18);
-
-  doc.fontSize(10)
-     .font('Helvetica')
-     .fillColor('#1a365d')
-     .text('Principal, REC', x, y + 36);
+     .text('S.N Murugesan', x, y + 12);
 
   doc.fontSize(8)
      .font('Helvetica')
+     .fillColor('#1a365d')
+     .text('Principal, REC', x, y + 26);
+
+  doc.fontSize(6)
+     .font('Helvetica')
      .fillColor('#666666')
-     .text('Digitally Signed by Principal', x, y + 52);
+     .text('Digitally Signed by Principal', x, y + 38);
 
   doc.strokeColor('#000000')
      .lineWidth(1)
-     .moveTo(x, y + 68)
-     .lineTo(x + 140, y + 68)
+     .moveTo(x, y + 48)
+     .lineTo(x + 110, y + 48)
      .stroke();
 }
 
-// Simple seal - positioned at left bottom with proper margins
+// Simple seal - compact design without any stray symbols
 function addSimpleSeal(doc, x, y, requestId) {
-  const radius = 40;
-  const centerX = x + radius + 10; // Add padding from left edge
+  const radius = 30;
+  const centerX = x + radius + 8;
   const centerY = y + radius;
 
   // Outer circle
@@ -173,50 +198,50 @@ function addSimpleSeal(doc, x, y, requestId) {
   // Inner circle
   doc.strokeColor('#1a365d')
      .lineWidth(1)
-     .circle(centerX, centerY, radius - 8)
+     .circle(centerX, centerY, radius - 5)
      .stroke();
 
-  // Seal text - compact and well-spaced
-  doc.fontSize(10)
-     .font('Helvetica-Bold')
-     .fillColor('#1a365d')
-     .text('REC', centerX - 15, centerY - 20, { width: 30, align: 'center' });
-
-  doc.fontSize(7)
-     .font('Helvetica-Bold')
-     .fillColor('#1a365d')
-     .text('RAJALAKSHMI', centerX - 25, centerY - 8, { width: 50, align: 'center' });
-
-  doc.fontSize(6)
-     .font('Helvetica-Bold')
-     .fillColor('#1a365d')
-     .text('ENGINEERING COLLEGE', centerX - 25, centerY + 2, { width: 50, align: 'center' });
-
-  doc.fontSize(6)
-     .font('Helvetica')
-     .fillColor('#1a365d')
-     .text('Chennai', centerX - 20, centerY + 12, { width: 40, align: 'center' });
-
-  doc.fontSize(6)
-     .font('Helvetica')
-     .fillColor('#1a365d')
-     .text('OFFICIAL SEAL', centerX - 20, centerY + 22, { width: 40, align: 'center' });
-
-  // Decorative stars
+  // Seal text - clean and compact
   doc.fontSize(8)
-     .fillColor('#0066cc')
-     .text('★', centerX - radius + 5, centerY - 3)
-     .text('★', centerX + radius - 12, centerY - 3)
-     .text('★', centerX - 3, centerY - radius + 8)
-     .text('★', centerX - 3, centerY + radius - 12);
+     .font('Helvetica-Bold')
+     .fillColor('#1a365d')
+     .text('REC', centerX - 10, centerY - 15, { width: 20, align: 'center' });
 
-  // Seal ID below with proper spacing
-  doc.fontSize(7)
+  doc.fontSize(5)
+     .font('Helvetica-Bold')
+     .fillColor('#1a365d')
+     .text('RAJALAKSHMI', centerX - 18, centerY - 5, { width: 36, align: 'center' });
+
+  doc.fontSize(4)
+     .font('Helvetica-Bold')
+     .fillColor('#1a365d')
+     .text('ENGINEERING COLLEGE', centerX - 18, centerY + 2, { width: 36, align: 'center' });
+
+  doc.fontSize(4)
+     .font('Helvetica')
+     .fillColor('#1a365d')
+     .text('Chennai', centerX - 15, centerY + 8, { width: 30, align: 'center' });
+
+  doc.fontSize(4)
+     .font('Helvetica')
+     .fillColor('#1a365d')
+     .text('OFFICIAL SEAL', centerX - 15, centerY + 14, { width: 30, align: 'center' });
+
+  // Clean decorative elements - only stars, no ampersands
+  doc.fontSize(5)
+     .fillColor('#0066cc')
+     .text('*', centerX - radius + 4, centerY - 2)
+     .text('*', centerX + radius - 8, centerY - 2)
+     .text('*', centerX - 2, centerY - radius + 5)
+     .text('*', centerX - 2, centerY + radius - 8);
+
+  // Seal ID below
+  doc.fontSize(5)
      .font('Helvetica')
      .fillColor('#666666')
      .text(`Seal ID: CERT-${new Date().getFullYear()}-${String(requestId).padStart(3, '0')}`, 
-           x, y + (radius * 2) + 15, {
-       width: 120,
+           x, y + (radius * 2) + 8, {
+       width: 80,
        align: 'center'
      });
 }
