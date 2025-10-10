@@ -2,41 +2,48 @@ name: Build and Push Multiple Docker Images to ACR
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - "Dockerfile"
       - "server/**"
       - ".github/workflows/main.yml"
+  workflow_dispatch:
+
+env:
+  ACR_NAME: 'ACRLFS'
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    name: Build and Push to ACR
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Log in to Azure Container Registry
-        uses: azure/docker-login@v2
+      - name: Login via Azure CLI
+        uses: azure/login@v1
         with:
-          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.ACR_NAME }}.azurecr.io
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
       # 🐳 Build backend image
       - name: Build backend Docker image
         run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-backend:latest -f ./server/Dockerfile ./server
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/backend:${{ github.run_number }} -f ./server/Dockerfile ./server
 
       # 🐳 Build frontend image
       - name: Build frontend Docker image
         run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-frontend:latest -f Dockerfile.frontend .
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/frontend:${{ github.run_number }} -f Dockerfile.frontend .
 
       # 🚀 Push both images to ACR
       - name: Push Docker images
         run: |
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-backend:latest
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-frontend:latest
+          docker push ${{ env.ACR_NAME }}.azurecr.io/backend:${{ github.run_number }}
+          docker push ${{ env.ACR_NAME }}.azurecr.io/frontend:${{ github.run_number }}
