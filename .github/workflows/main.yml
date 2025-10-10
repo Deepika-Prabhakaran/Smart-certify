@@ -7,7 +7,6 @@ on:
     paths:
       - "Dockerfile"
       - "server/**"
-      - "src/**"
       - ".github/workflows/main.yml"
 
 jobs:
@@ -29,12 +28,12 @@ jobs:
       # 🐳 Build backend image
       - name: Build backend Docker image
         run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-backend:latest ./server
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-backend:latest -f ./server/Dockerfile ./server
 
       # 🐳 Build frontend image
       - name: Build frontend Docker image
         run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-frontend:latest ./src
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/smart-certify-frontend:latest -f Dockerfile.frontend .
 
       # 🚀 Push both images to ACR
       - name: Push Docker images
