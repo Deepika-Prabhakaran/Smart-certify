@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  ACR_NAME: 'ACRLFS'
+  ACR_NAME: 'SmartCertifyContainer'
 
 jobs:
   build-and-push:
