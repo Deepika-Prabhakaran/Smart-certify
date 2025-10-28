@@ -24,7 +24,7 @@ const AdminDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/requests');
+      const response = await fetch('https://cert-admin-webapp-24-fyekedh8evdyh0aw.centralindia-01.azurewebsites.net/api/admin/requests');
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
         description: `Generating sealed PDF for ${request?.studentName || 'student'} with official signature and institutional seal...`,
       });
 
-      const response = await fetch(`http://localhost:5000/api/admin/approve/${requestId}`, {
+      const response = await fetch(`https://cert-admin-webapp-24-fyekedh8evdyh0aw.centralindia-01.azurewebsites.net/api/admin/approve/${requestId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ const AdminDashboard = () => {
 
   const handleReject = async (requestId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/reject/${requestId}`, {
+      const response = await fetch(`https://cert-admin-webapp-24-fyekedh8evdyh0aw.centralindia-01.azurewebsites.net/api/admin/reject/${requestId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
