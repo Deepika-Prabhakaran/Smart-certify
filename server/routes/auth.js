@@ -2,6 +2,15 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getPool } from '../db.js';
+import rateLimit from 'express-rate-limit';
+
+// Rate limiter for auth endpoints (e.g., /verify): limit to 10 requests/min per IP
+const verifyRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false,  // Disable the `X-RateLimit-*` headers
+});
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-here-make-it-long-and-random-123456789';
@@ -326,7 +335,7 @@ router.post('/admin/signin', async (req, res) => {
 });
 
 // Verify JWT Token
-router.get('/verify', async (req, res) => {
+router.get('/verify', verifyRateLimiter, async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     

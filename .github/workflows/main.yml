@@ -1,4 +1,4 @@
-name: Build and Push Multiple Docker Images to ACR
+name: Build, Push to ACR and Perform CodeQL Analysis
 
 on:
   push:
@@ -7,13 +7,19 @@ on:
       - "Dockerfile"
       - "server/**"
       - ".github/workflows/main.yml"
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 env:
   ACR_NAME: 'SmartCertifyContainer'
 
 jobs:
+  # ----------------------------------------------------
+  # 🐳 Job 1: Build and Push Multiple Docker Images to ACR
+  # ----------------------------------------------------
   build-and-push:
+    name: Build and Push Docker Images to ACR
     runs-on: ubuntu-latest
 
     steps:
@@ -47,3 +53,32 @@ jobs:
         run: |
           docker push ${{ env.ACR_NAME }}.azurecr.io/backend:${{ github.run_number }}
           docker push ${{ env.ACR_NAME }}.azurecr.io/frontend:${{ github.run_number }}
+
+  # ----------------------------------------------------
+  # 🔍 Job 2: Perform CodeQL Analysis
+  # ----------------------------------------------------
+  codeql-analysis:
+    name: Perform CodeQL Analysis
+    runs-on: ubuntu-latest
+    needs: build-and-push  # Runs only after Docker images are built & pushed
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python' ]  # Adjust based on your repo
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

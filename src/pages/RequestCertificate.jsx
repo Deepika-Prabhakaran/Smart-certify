@@ -88,7 +88,7 @@ const RequestCertificate = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/submit-request', {
+      const response = await fetch('https://cert-admin-webapp-24-fyekedh8evdyh0aw.centralindia-01.azurewebsites.net/submit-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
