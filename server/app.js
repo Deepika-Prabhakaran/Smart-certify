@@ -1,6 +1,7 @@
 import express from 'express';
 import { getPool } from '../db.js';
 import { generateCertificatePDF } from '../utils/pdfGenerator.js';
+import appInsights from './telemetry.js';
 
 const router = express.Router();
 

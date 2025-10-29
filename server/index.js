@@ -1,3 +1,4 @@
+import './telemetry.js';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -43,6 +44,36 @@ app.get('/api/health', (req, res) => {
     service: 'Smart Certify Backend',
     version: '1.0.0'
   });
+});
+
+// ✅ Telemetry test endpoint (paste this block below health check)
+app.get('/api/test-telemetry', async (req, res) => {
+  console.log('Telemetry test route called');
+
+  try {
+    // Dynamically import Application Insights SDK and use the default client
+    const appInsights = (await import('applicationinsights')).default;
+    const client = appInsights.defaultClient;
+
+    client.trackEvent({ name: 'TelemetryTestEvent', properties: { user: 'Deepika', feature: 'AI Monitoring' } });
+    client.trackTrace({ message: 'Telemetry route hit successfully!' });
+    client.trackMetric({ name: 'TestMetric', value: 42 });
+
+    // Attempt to flush immediately (best-effort)
+    try {
+      client.flush();
+    } catch (flushErr) {
+      console.warn('Telemetry flush warning:', flushErr);
+    }
+
+    res.json({
+      message: 'Telemetry event sent successfully!',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Telemetry test failed:', err);
+    res.status(500).json({ error: 'Failed to send telemetry', details: err.message });
+  }
 });
 
 // Error handling middleware

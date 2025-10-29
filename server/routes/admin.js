@@ -1,8 +1,10 @@
 import express from 'express';
 import { getPool } from '../db.js';
 import { generateCertificatePDF } from '../utils/pdfGenerator.js';
+import appInsights from '../telemetry.js';
 
 const router = express.Router();
+const client = appInsights.defaultClient;
 
 // GET /api/admin/requests - Get all requests with letters for admin
 router.get('/requests', async (req, res) => {
@@ -30,8 +32,16 @@ router.get('/requests', async (req, res) => {
         downloadUrl: request.pdfPath ? `/certificates/${request.pdfPath}` : null
       }))
     });
+
+    // Telemetry: admin fetched requests
+    try {
+      client.trackEvent({ name: 'AdminRequestsFetched', properties: { count: String(result.recordset.length) } });
+    } catch (teleErr) {
+      console.warn('Telemetry warning (AdminRequestsFetched):', teleErr);
+    }
   } catch (error) {
     console.error('Error fetching admin requests:', error);
+    try { client.trackException({ exception: error }); } catch (_) {}
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -84,6 +94,13 @@ router.post('/approve/:id', async (req, res) => {
 
     console.log('✅ PDF generated successfully with official seal and signature:', pdfFileName, '| SEAL APPLIED: YES');
 
+    // Telemetry: certificate approved
+    try {
+      client.trackEvent({ name: 'CertificateApproved', properties: { status: 'Approved', id: String(request.id), pdfFileName } });
+    } catch (teleErr) {
+      console.warn('Telemetry warning (CertificateApproved):', teleErr);
+    }
+
     // Update database with the generated PDF filename
     await pool.request()
       .input('id', id)
@@ -109,6 +126,7 @@ router.post('/approve/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error approving request and generating sealed PDF:', error);
+    try { client.trackException({ exception: error }); } catch (_) {}
     res.status(500).json({ 
       error: 'Failed to approve certificate and generate PDF',
       details: error.message 
@@ -143,6 +161,13 @@ router.post('/reject/:id', async (req, res) => {
       return res.status(404).json({ error: 'Request not found or already processed' });
     }
 
+    // Telemetry: certificate rejected
+    try {
+      client.trackEvent({ name: 'CertificateRejected', properties: { status: 'Rejected', id: String(id) } });
+    } catch (teleErr) {
+      console.warn('Telemetry warning (CertificateRejected):', teleErr);
+    }
+
     res.json({
       message: 'Request rejected successfully',
       requestId: id,
@@ -150,6 +175,7 @@ router.post('/reject/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error rejecting request:', error);
+    try { client.trackException({ exception: error }); } catch (_) {}
     res.status(500).json({ error: 'Internal server error' });
   }
 });

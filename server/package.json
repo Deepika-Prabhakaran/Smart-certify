@@ -9,6 +9,7 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "applicationinsights": "^3.12.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
